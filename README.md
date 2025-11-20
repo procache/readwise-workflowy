@@ -2,13 +2,32 @@
 
 Tento nástroj exportuje vaše highlights z Readwise.io s tagem "todo" a importuje je do Workflowy.
 
+## 🚀 Dvě verze k dispozici
+
+Tento projekt obsahuje **dvě verze** skriptu:
+
+### 1. `readwise_to_workflowy_wfapi.py` ⭐ **DOPORUČENO**
+- Používá Python knihovnu `wfapi`
+- **Spolehlivější a testovanější**
+- Vyžaduje username a heslo k Workflowy
+- Snadnější nastavení
+
+### 2. `readwise_to_workflowy.py`
+- Přímá komunikace s Workflowy API
+- Vyžaduje Bearer token nebo Session ID
+- **Může vyžadovat ladění** (API není oficiálně dokumentováno)
+- Použijte, pokud nechcete zadávat heslo
+
+**💡 Tip:** Začněte s verzí `wfapi` - je jednodušší a spolehlivější!
+
 ## Funkce
 
 - ✅ Exportuje pouze highlights s tagem "todo" z Readwise
 - ✅ Automaticky vytváří položky ve Workflowy
 - ✅ Zachovává metadata (autor, zdroj, URL, poznámky)
 - ✅ Podpora Readwise API v2
-- ✅ Podpora Workflowy Bearer token i Session ID autentizace
+- ✅ Detailní error reporting
+- ✅ Dvě verze pro různé use-cases
 
 ## Požadavky
 
@@ -47,18 +66,28 @@ nano .env
 2. Zkopírujte váš API token
 3. Vložte ho do `.env` souboru jako `READWISE_API_TOKEN`
 
-### Workflowy API Token
+### Workflowy konfigurace
+
+Máte **dvě možnosti** podle toho, kterou verzi skriptu chcete použít:
+
+#### Pro `readwise_to_workflowy_wfapi.py` (DOPORUČENO) ⭐
+
+Jednoduše nastavte v `.env`:
+```
+WORKFLOWY_USERNAME=your_email@example.com
+WORKFLOWY_PASSWORD=your_password
+```
+
+#### Pro `readwise_to_workflowy.py` (Přímé API)
 
 Máte dvě možnosti autentizace:
 
-#### Možnost 1: Bearer Token (Doporučeno)
-
+**Možnost A: Bearer Token**
 1. Přejděte na https://beta.workflowy.com/api-reference/
 2. Získejte Bearer token podle dokumentace
 3. Vložte ho do `.env` souboru jako `WORKFLOWY_BEARER_TOKEN`
 
-#### Možnost 2: Session ID (Legacy)
-
+**Možnost B: Session ID**
 1. Přihlaste se do Workflowy ve webovém prohlížeči
 2. Otevřete Developer Tools (F12)
 3. Přejděte do záložky "Application" → "Cookies"
@@ -66,15 +95,21 @@ Máte dvě možnosti autentizace:
 5. Zkopírujte její hodnotu
 6. Vložte ji do `.env` souboru jako `WORKFLOWY_SESSION_ID`
 
-**Poznámka:** Stačí nastavit jednu z těchto metod autentizace.
-
 ## Použití
 
-Spusťte skript:
+### Verze wfapi (Doporučeno) ⭐
+
+```bash
+python readwise_to_workflowy_wfapi.py
+```
+
+### Verze s přímým API
 
 ```bash
 python readwise_to_workflowy.py
 ```
+
+**Poznámka:** Pokud první verze nefunguje, zkuste druhá verzi a naopak.
 
 Skript:
 1. Ověří vaše API tokeny

@@ -110,7 +110,7 @@ class WorkflowyClient:
         else:
             raise ValueError("Either session_id or bearer_token must be provided")
 
-    def create_item(self, name: str, parent_id: Optional[str] = None, note: Optional[str] = None) -> bool:
+    def create_item(self, name: str, parent_id: Optional[str] = None, note: Optional[str] = None) -> Dict:
         """
         Create a new item in Workflowy.
 
@@ -120,7 +120,7 @@ class WorkflowyClient:
             note: Optional note to attach to the item
 
         Returns:
-            True if successful, False otherwise
+            Dict with 'success' bool and optional 'error' message
         """
         try:
             payload = {
@@ -128,23 +128,28 @@ class WorkflowyClient:
             }
 
             if parent_id:
-                payload["parentid"] = parent_id
+                payload["parent_id"] = parent_id
 
             if note:
-                payload["note"] = note
+                payload["description"] = note
 
             response = self.session.post(
                 f"{self.BASE_URL}/create",
                 json=payload
             )
-            response.raise_for_status()
-            return True
+
+            # Check response
+            if response.status_code == 200 or response.status_code == 201:
+                return {"success": True}
+            else:
+                error_msg = f"Status {response.status_code}: {response.text}"
+                return {"success": False, "error": error_msg}
 
         except requests.RequestException as e:
-            print(f"Error creating Workflowy item: {e}")
-            if hasattr(e.response, 'text'):
-                print(f"Response: {e.response.text}")
-            return False
+            error_msg = f"Request failed: {str(e)}"
+            if hasattr(e, 'response') and e.response is not None:
+                error_msg += f" | Status: {e.response.status_code} | Response: {e.response.text}"
+            return {"success": False, "error": error_msg}
 
     def bulk_create_items(self, highlights: List[Dict]) -> int:
         """
@@ -157,10 +162,11 @@ class WorkflowyClient:
             Number of successfully created items
         """
         created_count = 0
+        errors = []
 
-        print(f"Creating {len(highlights)} items in Workflowy...")
+        print(f"\nCreating {len(highlights)} items in Workflowy...\n")
 
-        for highlight in highlights:
+        for idx, highlight in enumerate(highlights, 1):
             # Extract highlight information
             text = highlight.get("text", "")
             note = highlight.get("note", "")
@@ -185,13 +191,35 @@ class WorkflowyClient:
             item_note = "\n".join(note_parts) if note_parts else None
 
             # Create the item
-            if self.create_item(item_text, note=item_note):
-                created_count += 1
-                print(f"  ✓ Created: {item_text[:60]}...")
-            else:
-                print(f"  ✗ Failed: {item_text[:60]}...")
+            result = self.create_item(item_text, note=item_note)
 
-        print(f"\nSuccessfully created {created_count}/{len(highlights)} items")
+            if result["success"]:
+                created_count += 1
+                print(f"  [{idx}/{len(highlights)}] ✓ Created: {item_text[:60]}...")
+            else:
+                error_info = {
+                    "index": idx,
+                    "text": item_text[:60],
+                    "error": result.get("error", "Unknown error")
+                }
+                errors.append(error_info)
+                print(f"  [{idx}/{len(highlights)}] ✗ Failed: {item_text[:60]}...")
+
+                # Show detailed error for first 3 failures
+                if len(errors) <= 3:
+                    print(f"      Error: {result.get('error', 'Unknown error')}")
+
+        print(f"\n{'='*70}")
+        print(f"Successfully created {created_count}/{len(highlights)} items")
+
+        if errors:
+            print(f"\n{len(errors)} items failed. First few errors:")
+            for error in errors[:5]:
+                print(f"  - Item {error['index']}: {error['text']}")
+                print(f"    Error: {error['error']}")
+
+        print(f"{'='*70}\n")
+
         return created_count
 
 
